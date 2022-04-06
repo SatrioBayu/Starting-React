@@ -4,10 +4,12 @@ const useFetch = (url) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Cleanup
+  const abortCont = new AbortController();
 
   useEffect(() => {
     setTimeout(() => {
-      fetch(url)
+      fetch(url, { signal: abortCont.signal })
         .then((res) => {
           if (!res.ok) {
             throw Error("Unknown Endpoint So Cannot fetch data");
@@ -20,11 +22,20 @@ const useFetch = (url) => {
           setError(null);
         })
         .catch((err) => {
-          setError(err.message);
-          setLoading(false);
+          // Cleanup
+          if (err.name === "AbortError") {
+            console.log("Fetch Aborted");
+          } else {
+            setError(err.message);
+            setLoading(false);
+          }
         });
     }, 1000);
-  }, []);
+    // Cleanup
+    return () => {
+      abortCont.abort();
+    };
+  }, [url]);
 
   return { data, loading, error };
 };
